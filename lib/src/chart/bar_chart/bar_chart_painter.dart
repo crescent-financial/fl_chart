@@ -664,7 +664,7 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
   }
 
   void _drawBorder(CanvasWrapper canvasWrapper, RRect barRRect, Border border) {
-    if (border.left.width > 0 && border.left.width > 0) {
+    if (border.left.width > 0) {
       _barStrokePaint
         ..color = border.left.color
         ..strokeWidth = border.left.width;
@@ -676,7 +676,7 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
       );
     }
 
-    if (border.right.width > 0 && border.right.width > 0) {
+    if (border.right.width > 0) {
       _barStrokePaint
         ..color = border.right.color
         ..strokeWidth = border.right.width;
@@ -687,47 +687,75 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
       );
     }
 
-    if (border.top.width > 0 && border.top.width > 0) {
+    if (border.top.width > 0) {
       _barStrokePaint
         ..color = border.top.color
         ..strokeWidth = border.top.width;
 
-      final topRect = Rect.fromLTWH(
-        barRRect.left,
-        barRRect.outerRect.top,
-        barRRect.width,
-        barRRect.outerRect.height - barRRect.middleRect.height,
-      );
+      if (barRRect.blRadiusX == 0) {
+        canvasWrapper.canvas.drawLine(
+          Offset(
+            barRRect.left,
+            barRRect.outerRect.top,
+          ),
+          Offset(
+            barRRect.right,
+            barRRect.top,
+          ),
+          _barStrokePaint,
+        );
+      } else {
+        final topRect = Rect.fromLTWH(
+          barRRect.left,
+          barRRect.outerRect.top,
+          barRRect.width,
+          barRRect.outerRect.height - barRRect.middleRect.height,
+        );
 
-      canvasWrapper.canvas.drawArc(
-        topRect,
-        pi,
-        pi,
-        false,
-        _barStrokePaint,
-      );
+        canvasWrapper.canvas.drawArc(
+          topRect,
+          pi,
+          pi,
+          false,
+          _barStrokePaint,
+        );
+      }
     }
 
-    if (border.bottom.width > 0 && border.bottom.width > 0) {
+    if (border.bottom.width > 0) {
       _barStrokePaint
         ..color = border.bottom.color
         ..strokeWidth = border.bottom.width;
 
-      final bottomRect = Rect.fromLTWH(
-        barRRect.left,
-        barRRect.outerRect.bottom -
-            (barRRect.outerRect.height - barRRect.middleRect.height),
-        barRRect.width,
-        barRRect.outerRect.height - barRRect.middleRect.height,
-      );
+      if (barRRect.blRadiusX == 0) {
+        canvasWrapper.canvas.drawLine(
+          Offset(
+            barRRect.left,
+            barRRect.outerRect.bottom,
+          ),
+          Offset(
+            barRRect.right,
+            barRRect.bottom,
+          ),
+          _barStrokePaint,
+        );
+      } else {
+        final bottomRect = Rect.fromLTWH(
+          barRRect.left,
+          barRRect.outerRect.bottom -
+              (barRRect.outerRect.height - barRRect.middleRect.height),
+          barRRect.width,
+          barRRect.outerRect.height - barRRect.middleRect.height,
+        );
 
-      canvasWrapper.canvas.drawArc(
-        bottomRect,
-        pi,
-        -pi,
-        false,
-        _barStrokePaint,
-      );
+        canvasWrapper.canvas.drawArc(
+          bottomRect,
+          pi,
+          -pi,
+          false,
+          _barStrokePaint,
+        );
+      }
     }
   }
 }
