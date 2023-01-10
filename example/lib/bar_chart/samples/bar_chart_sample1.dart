@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:example/utils/color_extensions.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -161,68 +160,7 @@ class BarChartSample1State extends State<BarChartSample1> {
 
   BarChartData mainBarData() {
     return BarChartData(
-      barTouchData: BarTouchData(
-        touchTooltipData: BarTouchTooltipData(
-          tooltipBgColor: Colors.blueGrey,
-          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            String weekDay;
-            switch (group.x) {
-              case 0:
-                weekDay = 'Monday';
-                break;
-              case 1:
-                weekDay = 'Tuesday';
-                break;
-              case 2:
-                weekDay = 'Wednesday';
-                break;
-              case 3:
-                weekDay = 'Thursday';
-                break;
-              case 4:
-                weekDay = 'Friday';
-                break;
-              case 5:
-                weekDay = 'Saturday';
-                break;
-              case 6:
-                weekDay = 'Sunday';
-                break;
-              default:
-                throw Error();
-            }
-            return BarTooltipItem(
-              '$weekDay\n',
-              const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-              children: <TextSpan>[
-                TextSpan(
-                  text: (rod.toY - 1).toString(),
-                  style: const TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        touchCallback: (FlTouchEvent event, barTouchResponse) {
-          setState(() {
-            if (!event.isInterestedForInteractions ||
-                barTouchResponse == null ||
-                barTouchResponse.spot == null) {
-              touchedIndex = -1;
-              return;
-            }
-            touchedIndex = barTouchResponse.spot!.touchedBarGroupIndex;
-          });
-        },
-      ),
+      barTouchData: _getBarTouchData(),
       titlesData: FlTitlesData(
         show: true,
         rightTitles: AxisTitles(
@@ -251,6 +189,95 @@ class BarChartSample1State extends State<BarChartSample1> {
       gridData: FlGridData(show: false),
     );
   }
+
+  BarTouchData _getBarTouchData() => BarTouchData(
+        enabled: true,
+        handleBuiltInTouches: true,
+        touchTooltipData: BarTouchTooltipData(
+          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+            return BarTooltipItem(
+              '',
+              const TextStyle(),
+              customRowPainters: [
+                BarChartTooltipPaintedRow(
+                  left: TextPainter(
+                    text: const TextSpan(
+                      text: 'Dec 09',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.purple,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  right: TextPainter(
+                    text: const TextSpan(
+                      text: '4.00%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.purple,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                BarChartTooltipPaintedRow(
+                  left: TextPainter(
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      text: 'Balance',
+                    ),
+                  ),
+                  right: TextPainter(
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                      text: r'$1,229,000.00',
+                    ),
+                  ),
+                ),
+                BarChartTooltipPaintedRow(
+                  left: TextPainter(
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      text: 'Earnings',
+                    ),
+                  ),
+                  right: TextPainter(
+                    text: const TextSpan(
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                      text: r'+$10,000.00',
+                    ),
+                  ),
+                )
+              ],
+            );
+          },
+          maxContentWidth: 184,
+          maxContentHeight: 100,
+          fitInsideHorizontally: false,
+          fitInsideVertically: true,
+          tooltipRoundedRadius: 8,
+          tooltipBorder: const BorderSide(color: Colors.grey),
+          tooltipBgColor: Colors.white,
+          tooltipPadding: const EdgeInsets.all(12),
+        ),
+      );
 
   Widget getTitles(double value, TitleMeta meta) {
     const style = TextStyle(

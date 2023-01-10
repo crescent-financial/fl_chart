@@ -45,14 +45,14 @@ class _MyHomePageState extends State<MyHomePage> {
   final _duration = const Duration(milliseconds: 300);
   final _curve = Curves.easeInOutCubic;
   final _pages = const [
-    LineChartPage(),
     BarChartPage(),
     BarChartPage2(),
+    BarChartPage3(),
+    LineChartPage(),
     PieChartPage(),
     LineChartPage2(),
     LineChartPage3(),
     LineChartPage4(),
-    BarChartPage3(),
     ScatterChartPage(),
     RadarChartPage(),
   ];
