@@ -1,5 +1,6 @@
 import 'dart:core';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/base/axis_chart/axis_chart_painter.dart';
@@ -293,6 +294,7 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
     }
   }
 
+  // TODO: DRAW TOOLTIP
   @visibleForTesting
   void drawTouchTooltip(
     BuildContext context,
@@ -305,10 +307,6 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
     int barRodIndex,
     PaintHolder<BarChartData> holder,
   ) {
-    final viewSize = canvasWrapper.size;
-
-    const textsBelowMargin = 4;
-
     final tooltipItem = tooltipData.getTooltipItem(
       showOnBarGroup,
       barGroupIndex,
@@ -319,6 +317,55 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
     if (tooltipItem == null) {
       return;
     }
+
+    if (tooltipItem.customRowPainters == null && tooltipItem.text.isEmpty) {
+      return;
+    }
+
+    if (tooltipItem.customRowPainters == null) {
+      drawStandardTooltip(
+        context,
+        canvasWrapper,
+        groupPositions,
+        tooltipData,
+        showOnBarGroup,
+        barGroupIndex,
+        showOnRodData,
+        barRodIndex,
+        holder,
+        tooltipItem,
+      );
+    } else {
+      drawCustomTooltip(
+        context,
+        canvasWrapper,
+        groupPositions,
+        tooltipData,
+        showOnBarGroup,
+        barGroupIndex,
+        showOnRodData,
+        barRodIndex,
+        holder,
+        tooltipItem,
+      );
+    }
+  }
+
+  void drawStandardTooltip(
+    BuildContext context,
+    CanvasWrapper canvasWrapper,
+    List<GroupBarsPosition> groupPositions,
+    BarTouchTooltipData tooltipData,
+    BarChartGroupData showOnBarGroup,
+    int barGroupIndex,
+    BarChartRodData showOnRodData,
+    int barRodIndex,
+    PaintHolder<BarChartData> holder,
+    BarTooltipItem tooltipItem,
+  ) {
+    final viewSize = canvasWrapper.size;
+
+    const textsBelowMargin = 4;
 
     final span = TextSpan(
       style: Utils().getThemeAwareTextStyle(context, tooltipItem.textStyle),
@@ -460,9 +507,223 @@ class BarChartPainter extends AxisChartPainter<BarChartData> {
         canvasWrapper
           ..drawRRect(roundedRect, _bgTouchTooltipPaint)
           ..drawRRect(roundedRect, _borderTouchTooltipPaint)
-          ..drawText(tp, drawOffset);
+          ..drawText(
+            tp,
+            drawOffset,
+          );
       },
     );
+  }
+
+  void drawCustomTooltip(
+    BuildContext context,
+    CanvasWrapper canvasWrapper,
+    List<GroupBarsPosition> groupPositions,
+    BarTouchTooltipData tooltipData,
+    BarChartGroupData showOnBarGroup,
+    int barGroupIndex,
+    BarChartRodData showOnRodData,
+    int barRodIndex,
+    PaintHolder<BarChartData> holder,
+    BarTooltipItem tooltipItem,
+  ) {
+    final viewSize = canvasWrapper.size;
+
+    final tooltipHeight = tooltipData.maxContentHeight;
+    final tooltipWidth = tooltipData.maxContentWidth;
+
+    final barOffset = Offset(
+      groupPositions[barGroupIndex].barsX[barRodIndex],
+      getPixelY(showOnRodData.toY, viewSize, holder),
+    );
+
+    final zeroY = getPixelY(0, viewSize, holder);
+    final barTopY = min(zeroY, barOffset.dy);
+    final barBottomY = max(zeroY, barOffset.dy);
+    final drawTooltipOnTop = tooltipData.direction == TooltipDirection.top ||
+        (tooltipData.direction == TooltipDirection.auto &&
+            showOnRodData.isUpward());
+
+    final tooltipTop = drawTooltipOnTop
+        ? barTopY - tooltipHeight - tooltipData.tooltipMargin
+        : barBottomY + tooltipData.tooltipMargin;
+
+    /// draw the background rect with rounded radius
+    // ignore: omit_local_variable_types
+    Rect rect = Rect.fromLTWH(
+      barOffset.dx - (tooltipWidth / 2),
+      tooltipTop,
+      tooltipWidth,
+      tooltipHeight,
+    );
+
+    if (tooltipData.fitInsideHorizontally) {
+      if (rect.left < 0) {
+        final shiftAmount = 0 - rect.left;
+        rect = Rect.fromLTRB(
+          rect.left + shiftAmount,
+          rect.top,
+          rect.right + shiftAmount,
+          rect.bottom,
+        );
+      }
+
+      if (rect.right > viewSize.width) {
+        final shiftAmount = rect.right - viewSize.width;
+        rect = Rect.fromLTRB(
+          rect.left - shiftAmount,
+          rect.top,
+          rect.right - shiftAmount,
+          rect.bottom,
+        );
+      }
+    }
+
+    if (tooltipData.fitInsideVertically) {
+      if (rect.top < 0) {
+        final shiftAmount = 0 - rect.top;
+        rect = Rect.fromLTRB(
+          rect.left,
+          rect.top + shiftAmount,
+          rect.right,
+          rect.bottom + shiftAmount,
+        );
+      }
+
+      if (rect.bottom > viewSize.height) {
+        final shiftAmount = rect.bottom - viewSize.height;
+        rect = Rect.fromLTRB(
+          rect.left,
+          rect.top - shiftAmount,
+          rect.right,
+          rect.bottom - shiftAmount,
+        );
+      }
+    }
+
+    final radius = Radius.circular(tooltipData.tooltipRoundedRadius);
+    final roundedRect = RRect.fromRectAndCorners(
+      rect,
+      topLeft: radius,
+      topRight: radius,
+      bottomLeft: radius,
+      bottomRight: radius,
+    );
+    _bgTouchTooltipPaint.color = tooltipData.tooltipBgColor;
+
+    final rotateAngle = tooltipData.rotateAngle;
+    final rectRotationOffset =
+        Offset(0, Utils().calculateRotationOffset(rect.size, rotateAngle).dy);
+    final rectDrawOffset = Offset(roundedRect.left, roundedRect.top);
+
+    final rowLeftOffset = Offset(
+      rect.center.dx - (rect.width / 2) + tooltipData.tooltipPadding.left,
+      rect.topCenter.dy + tooltipData.tooltipPadding.top,
+    );
+
+    final rowRightOffset = Offset(
+      rect.center.dx + (rect.width / 2) - tooltipData.tooltipPadding.right,
+      rect.topCenter.dy + tooltipData.tooltipPadding.top,
+    );
+
+    if (tooltipData.tooltipBorder != BorderSide.none) {
+      _borderTouchTooltipPaint
+        ..color = tooltipData.tooltipBorder.color
+        ..strokeWidth = tooltipData.tooltipBorder.width;
+    }
+
+    final tempCanvas = CanvasWrapper(Canvas(PictureRecorder()), Size.zero);
+
+    canvasWrapper.drawRotated(
+      size: rect.size,
+      rotationOffset: rectRotationOffset,
+      drawOffset: rectDrawOffset,
+      angle: rotateAngle,
+      drawCallback: () {
+        canvasWrapper
+          ..drawRRect(roundedRect, _bgTouchTooltipPaint)
+          ..drawRRect(roundedRect, _borderTouchTooltipPaint);
+
+        // ignore: prefer_int_literals
+        tooltipItem.customRowPainters!.fold(0.0, (
+          double heightOffset,
+          BarChartTooltipPaintedRow row,
+        ) {
+          //draw the text to a temp canvas to get the size
+          //once we have the size we can use it to properly
+          //center the text vertically
+          tempCanvas
+            ..drawText(
+              row.left
+                ..textDirection = tooltipItem.textDirection
+                ..layout(
+                  maxWidth: tooltipData.maxContentWidth,
+                ),
+              rowLeftOffset.translate(0, heightOffset),
+            )
+            ..drawText(
+              row.right
+                ..textDirection = tooltipItem.textDirection
+                ..layout(maxWidth: tooltipData.maxContentWidth),
+              rowRightOffset.translate(
+                -row.right.width,
+                heightOffset,
+              ),
+            );
+
+          //get the max height of the left and right text
+          //take the difference in heights and divide it by 2
+          //to get the offset to center the text vertically
+          canvasWrapper
+            ..drawText(
+              row.left
+                ..textDirection = tooltipItem.textDirection
+                ..layout(
+                  maxWidth: tooltipData.maxContentWidth,
+                ),
+              rowLeftOffset.translate(
+                0,
+                heightOffset +
+                    getOffsetToCenterText(
+                      row.left.height,
+                      row.right.height,
+                    ),
+              ),
+            )
+            ..drawText(
+              row.right
+                ..textDirection = tooltipItem.textDirection
+                ..layout(maxWidth: tooltipData.maxContentWidth),
+              rowRightOffset.translate(
+                -row.right.width,
+                heightOffset +
+                    getOffsetToCenterText(
+                      row.right.height,
+                      row.left.height,
+                    ),
+              ),
+            );
+
+          if (row.left.height > row.right.height) {
+            return heightOffset +
+                row.left.height +
+                tooltipData.tooltipPadding.bottom;
+          } else {
+            return heightOffset +
+                row.right.height +
+                tooltipData.tooltipPadding.bottom;
+          }
+        });
+      },
+    );
+  }
+
+  double getOffsetToCenterText(double myHeight, double neighborsHeight) {
+    if (myHeight < neighborsHeight) {
+      return (neighborsHeight - myHeight) / 2;
+    } else {
+      return 0;
+    }
   }
 
   @visibleForTesting

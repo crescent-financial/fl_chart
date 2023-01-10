@@ -695,6 +695,7 @@ class BarTouchTooltipData with EquatableMixin {
     EdgeInsets? tooltipPadding,
     double? tooltipMargin,
     double? maxContentWidth,
+    double? maxContentHeight,
     GetBarTooltipItem? getTooltipItem,
     bool? fitInsideHorizontally,
     bool? fitInsideVertically,
@@ -706,6 +707,7 @@ class BarTouchTooltipData with EquatableMixin {
         tooltipPadding = tooltipPadding ??
             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         tooltipMargin = tooltipMargin ?? 16,
+        maxContentHeight = maxContentHeight ?? 0,
         maxContentWidth = maxContentWidth ?? 120,
         getTooltipItem = getTooltipItem ?? defaultBarTooltipItem,
         fitInsideHorizontally = fitInsideHorizontally ?? false,
@@ -729,6 +731,9 @@ class BarTouchTooltipData with EquatableMixin {
 
   /// Restricts the tooltip's width.
   final double maxContentWidth;
+
+  /// Restricts the tooltip's height.
+  final double maxContentHeight;
 
   /// Retrieves data for showing content inside the tooltip.
   final GetBarTooltipItem getTooltipItem;
@@ -802,6 +807,7 @@ class BarTooltipItem with EquatableMixin {
     this.textAlign = TextAlign.center,
     this.textDirection = TextDirection.ltr,
     this.children,
+    this.customRowPainters,
   });
 
   /// Text of the content.
@@ -818,6 +824,8 @@ class BarTooltipItem with EquatableMixin {
 
   /// List<TextSpan> add further style and format to the text of the tooltip
   final List<TextSpan>? children;
+
+  final List<BarChartTooltipPaintedRow>? customRowPainters;
 
   /// Used for equality check, see [EquatableMixin].
   @override
@@ -907,4 +915,14 @@ class BarChartDataTween extends Tween<BarChartData> {
   /// Lerps a [BarChartData] based on [t] value, check [Tween.lerp].
   @override
   BarChartData lerp(double t) => begin!.lerp(begin!, end!, t);
+}
+
+class BarChartTooltipPaintedRow {
+  BarChartTooltipPaintedRow({
+    required this.left,
+    required this.right,
+  });
+
+  final TextPainter left;
+  final TextPainter right;
 }
